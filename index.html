@@ -24,6 +24,8 @@ button:hover{background:#777}
 .avatar.selected{border-color:white}
 #profileAvatar{width:100px;height:100px;object-fit:cover;border-radius:20px}
 .small{font-size:13px;color:#999}
+.gameLink{margin-top:25px;padding:16px;background:#171717;border:1px solid #555;border-radius:15px}
+.gameLink button{width:100%;margin-top:8px}
 </style>
 </head>
 <body>
@@ -54,6 +56,16 @@ button:hover{background:#777}
 
     <h3>Wybierz awatar</h3>
     <div id="avatarList"></div>
+
+    <!-- NOWA FUNKCJA: ŁĄCZENIE BRAWL ARENA -->
+    <div class="gameLink">
+      <h3>🎮 POŁĄCZ BRAWL ARENA</h3>
+      <p>Wpisz jednorazowy kod z Alei Pucharów.</p>
+      <input id="gameCode" placeholder="BA-XXXXX-XXXXX" autocomplete="off">
+      <button id="connectGame">POŁĄCZ KONTO</button>
+      <p id="gameMessage"></p>
+    </div>
+
     <button id="logout" style="width:100%;margin-top:20px">WYLOGUJ SIĘ</button>
   </section>
 
@@ -209,6 +221,40 @@ document.getElementById("saveUsername").onclick = async () => {
 
   const {data: {user}} = await db.auth.getUser();
   await loadProfile(user);
+};
+
+/* NOWE: PRZYPISYWANIE BRAWL ARENA */
+document.getElementById("connectGame").onclick = async () => {
+  const button = document.getElementById("connectGame");
+  const codeInput = document.getElementById("gameCode");
+  const gameMessage = document.getElementById("gameMessage");
+
+  const code = codeInput.value.trim().toUpperCase();
+
+  if(!/^BA-[A-Z0-9]{5}-[A-Z0-9]{5}$/.test(code)) {
+    gameMessage.textContent = "Nieprawidłowy format kodu.";
+    return;
+  }
+
+  button.disabled = true;
+  gameMessage.textContent = "Łączenie konta...";
+
+  try {
+    const {data, error} = await db.rpc(
+      "redeem_game_link_code",
+      {p_code: code}
+    );
+
+    if(error) throw error;
+    if(data !== true) throw new Error("Nie udało się połączyć konta.");
+
+    codeInput.value = "";
+    gameMessage.textContent = "✅ Brawl Arena połączona z QUOREK ID!";
+  } catch(error) {
+    gameMessage.textContent = error.message || "Wystąpił błąd.";
+  } finally {
+    button.disabled = false;
+  }
 };
 
 document.getElementById("logout").onclick = async () => {
